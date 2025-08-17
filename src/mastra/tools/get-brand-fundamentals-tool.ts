@@ -1,15 +1,22 @@
 import { createTool } from "@mastra/core";
+import { z } from "zod";
 
-export const getBrandFundamentals = async () => {
+export const getBrandFundamentals = async (brand: string) => {
+    console.log("brand", brand);
     return BRAND_FUNDAMENTALS;
 }
 
 export const getBrandFundamentalsTool = createTool({
     id: "Get Brand Fundamentals",
     description: `Fetches the current brand fundamentals for a given brand`,
-    execute: async () => {
+    inputSchema: z.object({
+        brand: z.string().describe("The brand to fetch the fundamentals for"),
+    }),
+    execute: async ({context, runtimeContext}) => {
+      console.log("runtimeContext", runtimeContext);
+      console.log("context", context);
       console.log("Using tool to fetch brand fundamentals");
-      return getBrandFundamentals();
+      return getBrandFundamentals(context.brand);
     },
   });
 

@@ -6,8 +6,14 @@ import { competitiveAnalysisAgent } from "../agents/competitive-analysis-agent";
 import { contentWriterAgent } from "../agents/content-writer-agent";
 import { AnthropicProviderOptions } from "@ai-sdk/anthropic";
 import { OpenAIProvider } from "@ai-sdk/openai";
+import { mastra } from "..";
+import { createReport } from "../tools/write-report";
 
- 
+type BlogResearchRuntimeContext = {
+  "title": string;
+  "reasoningForBlog": string;
+};
+
 const seoResearchOutputSchema = z.object({
     primaryKeyword: z.object({
       keyword: z.string(),
@@ -38,7 +44,7 @@ const seoResearchStep = createStep({
  
     execute: async ({ inputData }) => {
     const { topic, brand } = inputData;
-    const brandFundamentals = await getBrandFundamentals();
+    const brandFundamentals = await getBrandFundamentals(brand);
 
     const  prompt = `Analyze keyword opportunities for: ${topic} Business context: ${brandFundamentals} 
     Use DataForSEO to: 1. Get search volume and difficulty for the main keyword 2. Find related long-tail variations 3. Try and find high volume keywords that are related to the brand, with low competition.
@@ -162,7 +168,12 @@ const contentResearchAndOutlineStep = createStep({
 
     Do not leave the citation at the end of the blog post, include it in the section where you reference the source.
 
-    Return the content outline as a markdown string.
+    Return the content outline as a markdown string, make sure you include the blog post in the <blog> tag.
+
+    Example:
+    <blog>
+    This is the blog post.
+    </blog>
     ` 
     const response = await contentWriterAgent.generate(prompt);
 
@@ -179,6 +190,7 @@ const contentResearchAndOutlineStep = createStep({
 
 const contentWritingOutputSchema = z.object({
     content: z.string(),
+    title: z.string(),
 })
 
 const contentWritingStep = createStep({
@@ -207,14 +219,17 @@ const contentWritingStep = createStep({
     6. End with clear next steps
 
     Format as markdown with clear H2 and H3 sections.
-    ` 
-    // const response = await contentWriterAgent.generate(prompt, {
-      //   experimental_output: z.object({
-      //       content: z.string()
-      //   })
-      // });
 
-    const { text, reasoning } = await contentWriterAgent.generate(
+    Output the blog post in the <blog> tag.
+
+    <blog>
+    This is the blog post.
+    </blog>
+
+    and the title of the blog post.
+    ` 
+
+    const { object, reasoning } = await contentWriterAgent.generate(
       [
         {
           role: "user",
@@ -227,23 +242,117 @@ const contentWritingStep = createStep({
             thinking: { type: "enabled", budgetTokens: 12000 },
           } satisfies AnthropicProviderOptions,
         },
-        // experimental_output: z.object({
-        //   content: z.string()
-        // })
+        experimental_output: z.object({
+          content: z.string(),
+          title: z.string()
+        })
       }
     );
 
-    const content = text;
-
     console.log('this is the reasoning', reasoning);
 
-    if (!content) {
+    if (!object) {
         throw new Error("No response object received");
     }
 
+    const title = object.title;
+    const content = object.content;
+
     // Parse the text response into an array of keywords
     return {
-      content: text,
+      content: content,
+      title: title
+    };
+  }
+});
+
+const addImagesStep = createStep({
+  id: "add-images-step",
+  description: "Add images to the blog post using the blog image workflow",
+  inputSchema: contentWritingOutputSchema,
+  outputSchema: contentWritingOutputSchema,
+  execute: async ({ inputData }) => {
+    const { content, title } = inputData;
+    
+    const workflow = mastra!.getWorkflow("blogImageWorkflow");
+    const run = await workflow.createRunAsync({});
+    
+    const runResult = await run.start({
+      inputData: {
+        blogPost: content,
+        title: title
+      }
+    });
+    
+    const result = runResult as any;
+    const blogPostWithImages = result.result.blogPost;
+    
+    return {
+      content: blogPostWithImages,
+      title: title
+    };
+  }
+});
+
+const writeBlogPostOutputSchema = z.object({
+  content: z.string(),
+  title: z.string(),
+  filePath: z.string()
+});
+
+const writeBlogPostStep = createStep({
+  id: "write-blog-post-step",
+  description: "Write the final blog post to the blog directory",
+  inputSchema: contentWritingOutputSchema,
+  outputSchema: writeBlogPostOutputSchema,
+  execute: async ({ inputData }) => {
+    const { content, title } = inputData;
+    
+    // Normalize content formatting to ensure proper spacing and line endings
+    let normalizedContent = content;
+    
+    // Handle potential JSON string content
+    if (typeof content === 'string' && content.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(content);
+        normalizedContent = parsed.content || content;
+      } catch {
+        // If JSON parsing fails, use content as-is
+        normalizedContent = content;
+      }
+    }
+    
+    // Normalize line endings and ensure consistent spacing
+    normalizedContent = normalizedContent
+      .replace(/\r\n/g, '\n') // Convert Windows line endings
+      .replace(/\r/g, '\n') // Convert Mac line endings
+      .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines to maximum 2
+      .trim(); // Remove leading/trailing whitespace
+    
+    // Create a filename from the title (sanitize it for filesystem)
+    const sanitizedTitle = title
+      .toLowerCase()
+      .replace(/[<>:"/\\|?*]/g, '') // Remove only filesystem-unsafe characters
+      .replace(/[^\w\s-]/g, '') // Keep only word characters, spaces, and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+      .trim();
+    
+    // Write the blog post to the blog directory
+    const filePath = await createReport(
+      sanitizedTitle,
+      normalizedContent,
+      "markdown",
+      "blog-posts"
+    );
+    
+    console.log(`✅ Blog post written to: ${filePath}`);
+    
+    return {
+      content: normalizedContent,
+      title,
+      filePath
     };
   }
 });
@@ -252,10 +361,12 @@ export const blogResearchWorkflow = createWorkflow({
     id: "blog-research-workflow",
     description: "Research a topic and create a blog post",
     inputSchema: inputSchema,
-    outputSchema: contentAnalysisOutputSchema,
+    outputSchema: writeBlogPostOutputSchema,
 })
   .then(seoResearchStep)
   .then(competitiveAnalysisStep)
   .then(contentResearchAndOutlineStep)
   .then(contentWritingStep)
+  .then(addImagesStep)
+  .then(writeBlogPostStep)
   .commit();

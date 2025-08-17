@@ -11,8 +11,9 @@ import { researchAgent } from "./agents/seo-research-agent";
 import { blogResearchWorkflow } from "./workflows/blog-research-workflow";
 import { contentWriterAgent } from "./agents/content-writer-agent";
 import { competitiveAnalysisAgent } from "./agents/competitive-analysis-agent";
-import { imageAgent } from "./agents/image-agent";
+import { imageSearchAgent } from "./agents/image-search-agent";
 import { generateHeroImageTool } from "./tools/generate-hero-image";
+import { blogImageWorkflow } from "./workflows/blog-image-workflow";
 
 import dotenv from 'dotenv';
 dotenv.config({ path: '/Users/alexandergirardet/Code/vibeflow-projects/seo-blogs/.env' });
@@ -42,8 +43,8 @@ const logger = new PinoLogger({
 });
 
 export const mastra = new Mastra({
-  agents: { researchAgent, contentWriterAgent, competitiveAnalysisAgent, imageAgent },
-  workflows: { blogResearchWorkflow },
+  agents: { researchAgent, contentWriterAgent, competitiveAnalysisAgent, imageSearchAgent },
+  workflows: { blogResearchWorkflow, blogImageWorkflow },
   storage: new LibSQLStore({
     url: "file:./mastra.db",
   }),
@@ -72,3 +73,4 @@ export const mastra = new Mastra({
   // Configure file-based logging
   logger: logger,
 });
+
