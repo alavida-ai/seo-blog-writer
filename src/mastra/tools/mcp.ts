@@ -1,37 +1,48 @@
 import { MCPClient } from "@mastra/mcp";
 import dotenv from 'dotenv';
 dotenv.config({ path: '/Users/alexandergirardet/Code/vibeflow-projects/seo-blogs/.env' });
- 
-// Only include the MCP servers whose tools you want
-export const mcp = new MCPClient({
-    timeout: 30000,
-    servers: {
-        dataForSEO: {
-            command: "npx",
-            args: [
-                "-y",
-                "@smithery/cli@latest",
-                "run",
-                "@moaiandin/mcp-dataforseo",
-                "--key",
-                process.env.DATA_FOR_SEO_KEY!,
-                "--profile",
-                "characteristic-walrus-1kqMhO"
-            ]
-        },
-        // Commented out firecrawlMCP - uncomment if needed
-        firecrawlMCP: {
-            command: "npx",
-            args: [
-                "-y",
-                "firecrawl-mcp"
-            ],
-            env: {
-                FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY!
+
+// Singleton MCP Client instance
+let mcpClientInstance: MCPClient | null = null;
+
+// Singleton factory function
+export function getMCPClient(): MCPClient {
+    if (!mcpClientInstance) {
+        mcpClientInstance = new MCPClient({
+            timeout: 30000,
+            servers: {
+                dataForSEO: {
+                    command: "npx",
+                    args: [
+                        "-y",
+                        "@smithery/cli@latest",
+                        "run",
+                        "@moaiandin/mcp-dataforseo",
+                        "--key",
+                        process.env.DATA_FOR_SEO_KEY!,
+                        "--profile",
+                        "characteristic-walrus-1kqMhO"
+                    ]
+                },
+                // Commented out firecrawlMCP - uncomment if needed
+                firecrawlMCP: {
+                    command: "npx",
+                    args: [
+                        "-y",
+                        "firecrawl-mcp"
+                    ],
+                    env: {
+                        FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY!
+                    }
+                }
             }
-        }
+        });
     }
-});
+    return mcpClientInstance;
+}
+
+// Cache for filtered tools to avoid re-fetching
+const toolCache = new Map<string, any>();
 
 // Option 2: Tool-level filtering functions
 export async function getFilteredTools(options: {
@@ -40,7 +51,17 @@ export async function getFilteredTools(options: {
     serverFilter?: string[];      // Only get tools from specific servers
     startsWith?: string[];        // Only get tools that start with a specific string
 }) {
-    const allTools = await mcp.getTools();
+    // Create cache key from options
+    const cacheKey = JSON.stringify(options);
+    
+    // Check cache first
+    if (toolCache.has(cacheKey)) {
+        return toolCache.get(cacheKey);
+    }
+
+    // Use singleton MCP client
+    const mcpClient = getMCPClient();
+    const allTools = await mcpClient.getTools();
     let filteredTools: any = {};
 
     for (const [toolName, toolDef] of Object.entries(allTools)) {
@@ -67,8 +88,11 @@ export async function getFilteredTools(options: {
             continue;
         }
 
-            filteredTools[toolName] = toolDef;
+        filteredTools[toolName] = toolDef;
     }
 
+    // Cache the result
+    toolCache.set(cacheKey, filteredTools);
+    
     return filteredTools;
 }

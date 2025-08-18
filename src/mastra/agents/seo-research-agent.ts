@@ -5,13 +5,16 @@ import { getFilteredTools } from '../tools/mcp';
 import { getBrandFundamentalsTool } from '../tools/get-brand-fundamentals-tool';
 import { openai } from '@ai-sdk/openai';
 
-const researchTools = await getFilteredTools({
-    allowedTools: [
-        'dataForSEO_datalabs_search_intent',
-        'dataForSEO_search',
-        'dataForSEO_fetch'
-    ]
-});
+// Lazy-loaded tools function
+async function getResearchTools() {
+    return await getFilteredTools({
+        allowedTools: [
+            'dataForSEO_datalabs_search_intent',
+            'dataForSEO_search',
+            'dataForSEO_fetch'
+        ]
+    });
+}
 
 export const researchAgent = new Agent({
   name: 'Research Agent',
@@ -31,7 +34,7 @@ export const researchAgent = new Agent({
     - Competition gap opportunities
 `,
   model: openai('gpt-4o'),
-  tools: {
-    ...researchTools
+  tools: async () => {
+    return await getResearchTools();
   },
 });

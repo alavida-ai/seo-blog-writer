@@ -6,8 +6,8 @@ import { competitiveAnalysisAgent } from "../agents/competitive-analysis-agent";
 import { contentWriterAgent } from "../agents/content-writer-agent";
 import { AnthropicProviderOptions } from "@ai-sdk/anthropic";
 import { openai, OpenAIProvider } from "@ai-sdk/openai";
-import { mastra } from "..";
-import { createReport } from "../tools/write-report";
+
+import { createReport, writeBlogPost } from "../tools/write-report";
 
 type BlogResearchRuntimeContext = {
   "title": string;
@@ -277,8 +277,8 @@ const contentWritingStep = createStep({
       }
     );
 
-    const title = text.match(/<title>(.*?)<\/title>/)?.[1] || '';
-    const content = text.replace(/<title>.*?<\/title>/, '').replace(/<blog>.*?<\/blog>/, '').trim();
+    const title = text.match(/<title>(.*?)<\/title>/)?.[1]?.trim() || '';
+    const content = text.match(/<blog>(.*?)<\/blog>/s)?.[1]?.trim() || '';
 
     console.log('this is the reasoning', reasoning);
 
@@ -288,34 +288,6 @@ const contentWritingStep = createStep({
     // Parse the text response into an array of keywords
     return {
       content: content,
-      title: title
-    };
-  }
-});
-
-const addImagesStep = createStep({
-  id: "add-images-step",
-  description: "Add images to the blog post using the blog image workflow",
-  inputSchema: contentWritingOutputSchema,
-  outputSchema: contentWritingOutputSchema,
-  execute: async ({ inputData }) => {
-    const { content, title } = inputData;
-    
-    const workflow = mastra!.getWorkflow("blogImageWorkflow");
-    const run = await workflow.createRunAsync({});
-    
-    const runResult = await run.start({
-      inputData: {
-        blogPost: content,
-        title: title
-      }
-    });
-    
-    const result = runResult as any;
-    const blogPostWithImages = result.result.blogPost;
-    
-    return {
-      content: blogPostWithImages,
       title: title
     };
   }
@@ -366,15 +338,14 @@ const writeBlogPostStep = createStep({
       .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
       .trim();
     
-    // Write the blog post to the blog directory
-    const filePath = await createReport(
+    // Write the blog post to the docs/content/blogs directory
+    const filePath = await writeBlogPost(
       sanitizedTitle,
       normalizedContent,
-      "markdown",
-      "blog-posts"
+      title
     );
     
-    console.log(`✅ Blog post written to: ${filePath}`);
+    console.log(`✅ Blog post written to docs/content/blogs: ${filePath}`);
     
     return {
       content: normalizedContent,
@@ -394,6 +365,5 @@ export const blogResearchWorkflow = createWorkflow({
   .then(competitiveAnalysisStep)
   .then(contentResearchAndOutlineStep)
   .then(contentWritingStep)
-  .then(addImagesStep)
   .then(writeBlogPostStep)
   .commit();

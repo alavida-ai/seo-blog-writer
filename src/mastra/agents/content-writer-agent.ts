@@ -3,13 +3,14 @@ import { getFilteredTools } from '../tools/mcp';
 import { anthropic } from '@ai-sdk/anthropic';
 import { CLAUDE_SONNET_4 } from '../constants/models';
 
-// Option A: Use pre-defined research tools
-
-const contentWriterTools = await getFilteredTools({
-    allowedTools: [
-        'perplexityAsk_perplexity_ask',
-    ]
-});
+// Lazy-loaded tools function
+async function getContentWriterTools() {
+    return await getFilteredTools({
+        allowedTools: [
+            'perplexityAsk_perplexity_ask',
+        ]
+    });
+}
 
 export const contentWriterAgent = new Agent({
   name: 'Content Writer Agent',
@@ -37,9 +38,7 @@ export const contentWriterAgent = new Agent({
     ]
 `,
   model: anthropic(CLAUDE_SONNET_4),
-  tools: {
-    ...contentWriterTools,
-    // getBrandFundamentalsTool
-    // ...(await mcp.getTools()),
+  tools: async () => {
+    return await getContentWriterTools();
   },
 });
