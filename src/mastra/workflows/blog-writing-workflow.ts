@@ -433,9 +433,9 @@ const addImagesStep = createStep({
   }
 });
 
-export const blogResearchWorkflow = createWorkflow({
-    id: "blog-research-workflow",
-    description: "Research a topic and create a blog post with images",
+export const blogWritingWorkflow = createWorkflow({
+    id: "blog-writing-workflow",
+    description: "Research a topic, analyse the competitive landscape, outline the content, write the content, prepare the blog post, and add images",
     inputSchema: inputSchema,
     outputSchema: addImagesOutputSchema,
 })

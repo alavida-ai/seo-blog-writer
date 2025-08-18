@@ -1,11 +1,11 @@
 import { mastra } from ".";
 
-const workflow = mastra!.getWorkflow("blogResearchWorkflow");
+const workflow = mastra.getWorkflow("blogWritingWorkflow");
 
 const run = await workflow.createRunAsync({});
 
 const runResult = await run.start({
-  inputData: {
+  inputData: {  
     topic: "cross-border payments",
     brand: "send.it"
   }
