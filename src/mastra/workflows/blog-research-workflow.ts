@@ -271,12 +271,13 @@ const contentWritingStep = createStep({
 const writeBlogPostOutputSchema = z.object({
   content: z.string(),
   title: z.string(),
-  filePath: z.string()
+  filePath: z.string(),
+  seoData: seoResearchOutputSchema
 });
 
 const writeBlogPostStep = createStep({
   id: "write-blog-post-step",
-  description: "Write the final blog post to the blog directory",
+  description: "Write the initial blog post to the blog directory (without images)",
   inputSchema: contentWritingOutputSchema,
   outputSchema: writeBlogPostOutputSchema,
   execute: async ({ inputData }) => {
@@ -326,20 +327,92 @@ const writeBlogPostStep = createStep({
     return {
       content: normalizedContent,
       title,
-      filePath
+      filePath,
+      seoData
     };
+  }
+});
+
+const addImagesOutputSchema = z.object({
+  content: z.string(),
+  title: z.string(),
+  filePath: z.string()
+});
+
+const addImagesStep = createStep({
+  id: "add-images-step",
+  description: "Add images to the blog post using the image workflow",
+  inputSchema: writeBlogPostOutputSchema,
+  outputSchema: addImagesOutputSchema,
+  execute: async ({ inputData, mastra }) => {
+    const { content, title, filePath, seoData } = inputData;
+    
+    console.log(`🖼️ Adding images to blog post: ${title}`);
+    
+    // Get the blog image workflow from mastra
+    const imageWorkflow = mastra!.getWorkflow("blogImageWorkflow");
+    
+    if (!imageWorkflow) {
+      console.warn("⚠️ Blog image workflow not found, skipping image generation");
+      return inputData;
+    }
+    
+    try {
+      // Run the image workflow
+      const imageRun = await imageWorkflow.createRunAsync({});
+      const imageResult = await imageRun.start({
+        inputData: {
+          blogPost: content,
+          title: title
+        }
+      });
+      
+      const { blogPost: contentWithImages } = (imageResult as any).result;
+      
+      // Re-write the blog post with images
+      const sanitizedTitle = title
+        .toLowerCase()
+        .replace(/[<>:"/\\|?*]/g, '') // Remove only filesystem-unsafe characters
+        .replace(/[^\w\s-]/g, '') // Keep only word characters, spaces, and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+        .trim();
+      
+      // Re-write the file with images
+      const newFilePath = await writeBlogPost(
+        sanitizedTitle,
+        contentWithImages,
+        title,
+        seoData
+      );
+      
+      console.log(`✅ Blog post updated with images: ${newFilePath}`);
+      
+      return {
+        content: contentWithImages,
+        title,
+        filePath: newFilePath
+      };
+      
+    } catch (error) {
+      console.error("❌ Error adding images to blog post:", error);
+      // Return original content if image generation fails
+      return inputData;
+    }
   }
 });
 
 export const blogResearchWorkflow = createWorkflow({
     id: "blog-research-workflow",
-    description: "Research a topic and create a blog post",
+    description: "Research a topic and create a blog post with images",
     inputSchema: inputSchema,
-    outputSchema: writeBlogPostOutputSchema,
+    outputSchema: addImagesOutputSchema,
 })
   .then(seoResearchStep)
   .then(competitiveAnalysisStep)
   .then(contentResearchAndOutlineStep)
   .then(contentWritingStep)
   .then(writeBlogPostStep)
+  .then(addImagesStep)
   .commit();
