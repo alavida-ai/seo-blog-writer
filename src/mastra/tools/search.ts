@@ -26,8 +26,8 @@ export async function imageSearch(query: string): Promise<string[]> {
   });
 
   const diagram = diagramres.images[0];
-  if (diagram.description) {
-    images.push(`![${diagram.description}](${diagram.url})\n`);
+  if (diagram.url) {
+    images.push(diagram.url);
   }
 
   console.log(images);
@@ -45,7 +45,7 @@ export const searchImage = createTool({
       images: z
         .array(z.string())
         .optional()
-        .describe("The array of markdown format for images "),
+        .describe("The array of image URLs"),
     }),
     execute: async ({ context }) => {
       const images = await imageSearch(context.searchQuery);
