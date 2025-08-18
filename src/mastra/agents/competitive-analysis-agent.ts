@@ -1,9 +1,14 @@
-import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { getFilteredTools } from '../tools/mcp';
-import { wrapTool } from '../tools/tool-wrapper';
-import { getBrandFundamentalsTool } from '../tools/get-brand-fundamentals-tool';
 import { perplexityAskTool } from '../tools/perplexity-research';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { GPT_4O } from '../constants/models';
+// Initialize OpenRouter provider
+
+const openrouter = createOpenRouter({
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
+
 
 
 // Lazy-loaded tools function
@@ -48,7 +53,7 @@ All tools now have automatic retry logic:
 
 If a tool fails, you'll get clear instructions on what to try next.
 `,
-  model: openai(`gpt-4o`),
+  model: openrouter(GPT_4O),
   tools: async () => {
     return await getCompetitiveAnalysisTools();
   },

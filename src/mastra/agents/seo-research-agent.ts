@@ -1,9 +1,9 @@
-import { anthropic } from '@ai-sdk/anthropic';
 import { Agent } from '@mastra/core/agent';
-import { CLAUDE_SONNET_4 } from '../constants/models';
 import { getFilteredTools } from '../tools/mcp';
-import { getBrandFundamentalsTool } from '../tools/get-brand-fundamentals-tool';
-import { openai } from '@ai-sdk/openai';
+import { getOpenRouter } from './router';
+import { GPT_4O } from '../constants/models';
+
+const openrouter = getOpenRouter();
 
 // Lazy-loaded tools function
 async function getResearchTools() {
@@ -33,7 +33,7 @@ export const researchAgent = new Agent({
     - Business relevance score
     - Competition gap opportunities
 `,
-  model: openai('gpt-4o'),
+  model: openrouter(GPT_4O),
   tools: async () => {
     return await getResearchTools();
   },

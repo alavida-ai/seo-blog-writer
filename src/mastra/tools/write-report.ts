@@ -52,12 +52,28 @@ export async function createReport(
  * @param filename Name of the file to create (without extension)
  * @param content Blog post content
  * @param title Blog post title for frontmatter
+ * @param seoData SEO data including keywords and targeting information
  * @returns Promise that resolves with the full path of the created blog post
  */
 export async function writeBlogPost(
   filename: string,
   content: string,
-  title: string
+  title: string,
+  seoData?: {
+    primaryKeyword: {
+      keyword: string;
+      searchVolume: number;
+      difficulty: number;
+      intent: 'informational' | 'commercial' | 'transactional' | 'navigational';
+    };
+    secondaryKeywords: Array<{
+      keyword: string;
+      searchVolume: number;
+      relevance: 'high' | 'medium' | 'low';
+    }>;
+    contentAngle: string;
+    estimatedTrafficPotential: number;
+  }
 ): Promise<string> {
   const baseFilename =
     filename.endsWith(".md") || filename.endsWith(".txt")
@@ -85,10 +101,39 @@ export async function writeBlogPost(
   }
 
   // Create frontmatter and combine with content
-  const frontmatter = `---
+  let frontmatter = `---
 title: "${title}"
 date: ${new Date().toISOString().split('T')[0]}
-draft: false
+draft: false`;
+
+  // Add SEO metadata if provided
+  if (seoData) {
+    const keywords = [
+      seoData.primaryKeyword.keyword,
+      ...seoData.secondaryKeywords.map(k => k.keyword)
+    ];
+    
+    frontmatter += `
+keywords: ${JSON.stringify(keywords)}
+seo:
+  primaryKeyword: "${seoData.primaryKeyword.keyword}"
+  searchVolume: ${seoData.primaryKeyword.searchVolume}
+  difficulty: ${seoData.primaryKeyword.difficulty}
+  intent: "${seoData.primaryKeyword.intent}"
+  contentAngle: "${seoData.contentAngle}"
+  estimatedTrafficPotential: ${seoData.estimatedTrafficPotential}
+targeting:
+  secondaryKeywords:`;
+    
+    seoData.secondaryKeywords.forEach(keyword => {
+      frontmatter += `
+    - keyword: "${keyword.keyword}"
+      searchVolume: ${keyword.searchVolume}
+      relevance: "${keyword.relevance}"`;
+    });
+  }
+
+  frontmatter += `
 ---
 
 `;

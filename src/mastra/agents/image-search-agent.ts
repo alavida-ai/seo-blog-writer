@@ -1,6 +1,9 @@
 import { Agent } from "@mastra/core";
 import { searchImage } from "../tools/search";
-import { openai } from "@ai-sdk/openai";
+import { getOpenRouter } from './router';
+import { GPT_4O } from "../constants/models";
+
+const openrouter = getOpenRouter();
 
   export const imageSearchAgent = new Agent({
   name: "Image Search Agent",
@@ -26,7 +29,7 @@ You are an Image Search Agent tasked with searching the web for image URLs relev
 - Deliver accurate and relevant image URLs to user queries. 
 - Ensure user satisfaction by providing high-quality and contextually appropriate images.
 - Maintain a high level of accuracy and relevance in the image search results.`,
-  model: openai("gpt-4o"), 
+  model: openrouter(GPT_4O), 
   tools: {
    searchImage
   },

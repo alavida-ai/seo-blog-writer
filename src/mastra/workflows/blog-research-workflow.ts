@@ -4,15 +4,8 @@ import { z } from "zod";
 import { getBrandFundamentals } from "../tools/get-brand-fundamentals-tool";
 import { competitiveAnalysisAgent } from "../agents/competitive-analysis-agent";
 import { contentWriterAgent } from "../agents/content-writer-agent";
-import { AnthropicProviderOptions } from "@ai-sdk/anthropic";
-import { openai, OpenAIProvider } from "@ai-sdk/openai";
 
-import { createReport, writeBlogPost } from "../tools/write-report";
-
-type BlogResearchRuntimeContext = {
-  "title": string;
-  "reasoningForBlog": string;
-};
+import { writeBlogPost } from "../tools/write-report";
 
 const seoResearchOutputSchema = z.object({
     primaryKeyword: z.object({
@@ -79,7 +72,7 @@ const seoResearchStep = createStep({
 
 
     const result = await researchAgent.generate(prompt, {
-      experimental_output: seoResearchOutputSchema
+      output: seoResearchOutputSchema
     });
 
     const responseObject = result.object;
@@ -138,7 +131,7 @@ const competitiveAnalysisStep = createStep({
     Return a content opportunity analysis with specific gaps to fill.
     ` 
     const response = await competitiveAnalysisAgent.generate(prompt, {
-        experimental_output: z.object({
+        output: z.object({
             contentAnalysis: z.string()
         })
       });
@@ -219,6 +212,7 @@ const contentResearchAndOutlineStep = createStep({
 const contentWritingOutputSchema = z.object({
     content: z.string(),
     title: z.string(),
+    seoData: seoResearchOutputSchema,
 })
 
 const contentWritingStep = createStep({
@@ -247,48 +241,29 @@ const contentWritingStep = createStep({
     6. End with clear next steps
 
     Format as markdown with clear H2 and H3 sections.
-
-    Output the blog post in the <blog> tag and the title in the <title> tag.
-
-    <title>
-    This is the title of the blog post.
-    </title>
-
-    <blog>
-    This is the blog post.
-    </blog>
-
-    and the title of the blog post.
     ` 
 
-    const { text, reasoning } = await contentWriterAgent.generate(
-      [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      {
+    const { object, reasoning } = await contentWriterAgent.generate(prompt, {
         providerOptions: {
           anthropic: {
             thinking: { type: "enabled", budgetTokens: 12000 },
-          } satisfies AnthropicProviderOptions,
+          },
         },
-      }
+        output: contentWritingOutputSchema
+      },
     );
 
-    const title = text.match(/<title>(.*?)<\/title>/)?.[1]?.trim() || '';
-    const content = text.match(/<blog>(.*?)<\/blog>/s)?.[1]?.trim() || '';
-
-    console.log('this is the reasoning', reasoning);
-
-    if (!content) {
+    if (!object) {
         throw new Error("No response object received");
     }
-    // Parse the text response into an array of keywords
+
+    const { content, title } = object;
+
+    console.log('this is the reasoning', reasoning);
     return {
       content: content,
-      title: title
+      title: title,
+      seoData: inputData.seoResearchOutput
     };
   }
 });
@@ -305,7 +280,7 @@ const writeBlogPostStep = createStep({
   inputSchema: contentWritingOutputSchema,
   outputSchema: writeBlogPostOutputSchema,
   execute: async ({ inputData }) => {
-    const { content, title } = inputData;
+    const { content, title, seoData } = inputData;
     
     // Normalize content formatting to ensure proper spacing and line endings
     let normalizedContent = content;
@@ -342,7 +317,8 @@ const writeBlogPostStep = createStep({
     const filePath = await writeBlogPost(
       sanitizedTitle,
       normalizedContent,
-      title
+      title,
+      seoData
     );
     
     console.log(`✅ Blog post written to docs/content/blogs: ${filePath}`);

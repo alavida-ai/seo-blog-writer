@@ -1,8 +1,11 @@
-import { openai } from '@ai-sdk/openai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Agent } from '@mastra/core/agent';
 import { todoWriteTool } from '../tools/todo';
 import { todoReadTool } from '../tools/todo';
+import { getOpenRouter } from './router';
+import { GPT_4O } from '../constants/models';
 
+const openrouter = getOpenRouter();
 
 export const todoAgent = new Agent({
   name: 'Todo Agent',
@@ -11,7 +14,7 @@ export const todoAgent = new Agent({
 
     You use tools to read and write to the todo list.
 `,
-  model: openai(`gpt-4o`),
+  model: openrouter(GPT_4O),
   tools: {
     todoReadTool,
     todoWriteTool

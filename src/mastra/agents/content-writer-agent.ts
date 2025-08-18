@@ -1,7 +1,9 @@
 import { Agent } from '@mastra/core/agent';
 import { getFilteredTools } from '../tools/mcp';
-import { anthropic } from '@ai-sdk/anthropic';
+import { getOpenRouter } from './router';
 import { CLAUDE_SONNET_4 } from '../constants/models';
+
+const openrouter = getOpenRouter();
 
 // Lazy-loaded tools function
 async function getContentWriterTools() {
@@ -37,7 +39,7 @@ export const contentWriterAgent = new Agent({
       }
     ]
 `,
-  model: anthropic(CLAUDE_SONNET_4),
+  model: openrouter(CLAUDE_SONNET_4),
   tools: async () => {
     return await getContentWriterTools();
   },
