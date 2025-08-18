@@ -268,18 +268,17 @@ const contentWritingStep = createStep({
   }
 });
 
-const writeBlogPostOutputSchema = z.object({
+const prepareBlogPostOutputSchema = z.object({
   content: z.string(),
   title: z.string(),
-  filePath: z.string(),
   seoData: seoResearchOutputSchema
 });
 
-const writeBlogPostStep = createStep({
-  id: "write-blog-post-step",
-  description: "Write the initial blog post to the blog directory (without images)",
+const prepareBlogPostStep = createStep({
+  id: "prepare-blog-post-step",
+  description: "Prepare the blog post content (normalize formatting, but don't write to file yet)",
   inputSchema: contentWritingOutputSchema,
-  outputSchema: writeBlogPostOutputSchema,
+  outputSchema: prepareBlogPostOutputSchema,
   execute: async ({ inputData }) => {
     const { content, title, seoData } = inputData;
     
@@ -304,30 +303,11 @@ const writeBlogPostStep = createStep({
       .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines to maximum 2
       .trim(); // Remove leading/trailing whitespace
     
-    // Create a filename from the title (sanitize it for filesystem)
-    const sanitizedTitle = title
-      .toLowerCase()
-      .replace(/[<>:"/\\|?*]/g, '') // Remove only filesystem-unsafe characters
-      .replace(/[^\w\s-]/g, '') // Keep only word characters, spaces, and hyphens
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/-+/g, '-') // Replace multiple hyphens with single
-      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
-      .trim();
-    
-    // Write the blog post to the docs/content/blogs directory
-    const filePath = await writeBlogPost(
-      sanitizedTitle,
-      normalizedContent,
-      title,
-      seoData
-    );
-    
-    console.log(`✅ Blog post written to docs/content/blogs: ${filePath}`);
+    console.log(`📝 Blog post content prepared: ${title}`);
     
     return {
       content: normalizedContent,
       title,
-      filePath,
       seoData
     };
   }
@@ -341,11 +321,11 @@ const addImagesOutputSchema = z.object({
 
 const addImagesStep = createStep({
   id: "add-images-step",
-  description: "Add images to the blog post using the image workflow",
-  inputSchema: writeBlogPostOutputSchema,
+  description: "Add images to the blog post and write the final version to file",
+  inputSchema: prepareBlogPostOutputSchema,
   outputSchema: addImagesOutputSchema,
   execute: async ({ inputData, mastra }) => {
-    const { content, title, filePath, seoData } = inputData;
+    const { content, title, seoData } = inputData;
     
     console.log(`🖼️ Adding images to blog post: ${title}`);
     
@@ -353,8 +333,33 @@ const addImagesStep = createStep({
     const imageWorkflow = mastra!.getWorkflow("blogImageWorkflow");
     
     if (!imageWorkflow) {
-      console.warn("⚠️ Blog image workflow not found, skipping image generation");
-      return inputData;
+      console.warn("⚠️ Blog image workflow not found, writing blog post without images");
+      
+      // Create a filename from the title (sanitize it for filesystem)
+      const sanitizedTitle = title
+        .toLowerCase()
+        .replace(/[<>:"/\\|?*]/g, '') // Remove only filesystem-unsafe characters
+        .replace(/[^\w\s-]/g, '') // Keep only word characters, spaces, and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+        .trim();
+      
+      // Write the blog post without images
+      const filePath = await writeBlogPost(
+        sanitizedTitle,
+        content,
+        title,
+        seoData
+      );
+      
+      console.log(`✅ Blog post written without images: ${filePath}`);
+      
+      return {
+        content,
+        title,
+        filePath
+      };
     }
     
     try {
@@ -397,8 +402,33 @@ const addImagesStep = createStep({
       
     } catch (error) {
       console.error("❌ Error adding images to blog post:", error);
-      // Return original content if image generation fails
-      return inputData;
+      console.log("📝 Writing blog post without images due to error");
+      
+      // Create a filename from the title (sanitize it for filesystem)
+      const sanitizedTitle = title
+        .toLowerCase()
+        .replace(/[<>:"/\\|?*]/g, '') // Remove only filesystem-unsafe characters
+        .replace(/[^\w\s-]/g, '') // Keep only word characters, spaces, and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+        .trim();
+      
+      // Write the blog post without images
+      const filePath = await writeBlogPost(
+        sanitizedTitle,
+        content,
+        title,
+        seoData
+      );
+      
+      console.log(`✅ Blog post written without images: ${filePath}`);
+      
+      return {
+        content,
+        title,
+        filePath
+      };
     }
   }
 });
@@ -413,6 +443,6 @@ export const blogResearchWorkflow = createWorkflow({
   .then(competitiveAnalysisStep)
   .then(contentResearchAndOutlineStep)
   .then(contentWritingStep)
-  .then(writeBlogPostStep)
+  .then(prepareBlogPostStep)
   .then(addImagesStep)
   .commit();
