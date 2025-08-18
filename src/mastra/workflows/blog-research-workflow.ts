@@ -5,7 +5,7 @@ import { getBrandFundamentals } from "../tools/get-brand-fundamentals-tool";
 import { competitiveAnalysisAgent } from "../agents/competitive-analysis-agent";
 import { contentWriterAgent } from "../agents/content-writer-agent";
 import { AnthropicProviderOptions } from "@ai-sdk/anthropic";
-import { OpenAIProvider } from "@ai-sdk/openai";
+import { openai, OpenAIProvider } from "@ai-sdk/openai";
 import { mastra } from "..";
 import { createReport } from "../tools/write-report";
 
@@ -46,15 +46,43 @@ const seoResearchStep = createStep({
     const { topic, brand } = inputData;
     const brandFundamentals = await getBrandFundamentals(brand);
 
-    const  prompt = `Analyze keyword opportunities for: ${topic} Business context: ${brandFundamentals} 
-    Use DataForSEO to: 1. Get search volume and difficulty for the main keyword 2. Find related long-tail variations 3. Try and find high volume keywords that are related to the brand, with low competition.
-    Identify "${brand} alternative" and "${brand} vs" keywords 4. Find feature-specific keywords we can rank for Return the top keyword opportunity with 3-5 supporting keywords that we should target in a single comprehensive article.
-    `
-    const response = await researchAgent.generate(prompt, {
-        experimental_output: seoResearchOutputSchema
-      });
+    const  prompt = `Your job is identify long tail SEO keyword opportunities for our business to target this topic: ${topic}. 
 
-    const responseObject = response.object;
+    The business is: ${brand} and the business context is: ${brandFundamentals} 
+
+    You need to reason how the keywords are relevant to the business and the topic.
+
+    You should back up your keywords with data from DataForSEO.
+
+    Use DataForSEO to: 1. Get search volume and difficulty for the main keyword 2. Find related long-tail variations 3. Try and find high volume keywords that are related to the brand, with low competition.
+    
+    Your job is to identify the best keywords to target for the business, that will allow us to rank for the topic. 
+
+    Return the top keyword opportunity with 3-5 supporting keywords that we should target in a single comprehensive article.
+
+    Provide:
+    - Primary keyword with search volume, difficulty, and intent classification
+    - 3-5 secondary keywords with search volume and relevance rating
+    - Content angle (how to approach the topic)
+    - Estimated traffic potential
+    `
+    // const response = await researchAgent.generate(prompt, {
+    //   output: {
+    //     schema: seoResearchOutputSchema,
+    //   },
+    //     providerOptions: {
+    //       anthropic: {
+    //         thinking: { type: "enabled", budgetTokens: 12000 },
+    //       } satisfies AnthropicProviderOptions,
+    //     },
+    //   });
+
+
+    const result = await researchAgent.generate(prompt, {
+      experimental_output: seoResearchOutputSchema
+    });
+
+    const responseObject = result.object;
 
     if (!responseObject) {
         throw new Error("No response object received");
@@ -220,7 +248,11 @@ const contentWritingStep = createStep({
 
     Format as markdown with clear H2 and H3 sections.
 
-    Output the blog post in the <blog> tag.
+    Output the blog post in the <blog> tag and the title in the <title> tag.
+
+    <title>
+    This is the title of the blog post.
+    </title>
 
     <blog>
     This is the blog post.
@@ -229,7 +261,7 @@ const contentWritingStep = createStep({
     and the title of the blog post.
     ` 
 
-    const { object, reasoning } = await contentWriterAgent.generate(
+    const { text, reasoning } = await contentWriterAgent.generate(
       [
         {
           role: "user",
@@ -242,22 +274,17 @@ const contentWritingStep = createStep({
             thinking: { type: "enabled", budgetTokens: 12000 },
           } satisfies AnthropicProviderOptions,
         },
-        experimental_output: z.object({
-          content: z.string(),
-          title: z.string()
-        })
       }
     );
 
+    const title = text.match(/<title>(.*?)<\/title>/)?.[1] || '';
+    const content = text.replace(/<title>.*?<\/title>/, '').replace(/<blog>.*?<\/blog>/, '').trim();
+
     console.log('this is the reasoning', reasoning);
 
-    if (!object) {
+    if (!content) {
         throw new Error("No response object received");
     }
-
-    const title = object.title;
-    const content = object.content;
-
     // Parse the text response into an array of keywords
     return {
       content: content,

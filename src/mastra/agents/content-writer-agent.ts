@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core/agent';
-import { mcp, getResearchTools, getFilteredTools } from '../tools/mcp';
-import { z } from 'zod';
+import { getFilteredTools } from '../tools/mcp';
 import { anthropic } from '@ai-sdk/anthropic';
 import { CLAUDE_SONNET_4 } from '../constants/models';
 
@@ -9,17 +8,6 @@ import { CLAUDE_SONNET_4 } from '../constants/models';
 const contentWriterTools = await getFilteredTools({
     allowedTools: [
         'perplexityAsk_perplexity_ask',
-        // 'firecrawlMCP_firecrawl_scrape',
-        // 'firecrawlMCP_firecrawl_map',
-        // 'firecrawlMCP_firecrawl_crawl',
-        // 'firecrawlMCP_firecrawl_check_crawl_status',
-        // 'firecrawlMCP_firecrawl_search',
-        // 'firecrawlMCP_firecrawl_extract',
-        // 'firecrawlMCP_firecrawl_deep_research',
-        // 'firecrawlMCP_firecrawl_generate_llmstxt',
-        // 'dataForSEO_datalabs_search_intent',
-        // 'dataForSEO_search',
-        // 'dataForSEO_fetch'
     ]
 });
 
@@ -37,8 +25,16 @@ export const contentWriterAgent = new Agent({
     - Each section must stand alone as valuable
     - If you reference a source from your research, make sure to include the citation in the section.
 
-Never write filler content. If you can delete a sentence without losing value, delete it.
+    Never write filler content. If you can delete a sentence without losing value, delete it.
 
+    Example usage of perplexity tool: 
+
+    "messages": [
+      {
+        "role": "user",
+        "content": "What are the latest trends in SaaS content marketing for 2024? Focus on AI-driven strategies and personalization techniques."
+      }
+    ]
 `,
   model: anthropic(CLAUDE_SONNET_4),
   tools: {

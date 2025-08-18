@@ -1,22 +1,12 @@
-import { openai } from '@ai-sdk/openai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { Agent } from '@mastra/core/agent';
-import { mcp, getResearchTools, getFilteredTools } from '../tools/mcp';
-import { z } from 'zod';
+import { CLAUDE_SONNET_4 } from '../constants/models';
+import { getFilteredTools } from '../tools/mcp';
 import { getBrandFundamentalsTool } from '../tools/get-brand-fundamentals-tool';
-
-// Option A: Use pre-defined research tools
+import { openai } from '@ai-sdk/openai';
 
 const researchTools = await getFilteredTools({
     allowedTools: [
-        // 'perplexityAsk_perplexity_ask',
-        // 'firecrawlMCP_firecrawl_scrape',
-        // 'firecrawlMCP_firecrawl_map',
-        // 'firecrawlMCP_firecrawl_crawl',
-        // 'firecrawlMCP_firecrawl_check_crawl_status',
-        // 'firecrawlMCP_firecrawl_search',
-        // 'firecrawlMCP_firecrawl_extract',
-        // 'firecrawlMCP_firecrawl_deep_research',
-        // 'firecrawlMCP_firecrawl_generate_llmstxt',
         'dataForSEO_datalabs_search_intent',
         'dataForSEO_search',
         'dataForSEO_fetch'
@@ -40,10 +30,8 @@ export const researchAgent = new Agent({
     - Business relevance score
     - Competition gap opportunities
 `,
-  model: openai(`gpt-4o`),
+  model: openai('gpt-4o'),
   tools: {
-    ...researchTools,
-    getBrandFundamentalsTool
-    // ...(await mcp.getTools()),
+    ...researchTools
   },
 });

@@ -15,25 +15,28 @@ const blogImagePlaceholderStep = createStep({
   }),
   execute: async ({ inputData }) => {
     const { blogPost, title } = inputData;
-    const prompt = `Your job is to rewrite this blog post exactly as is however you will identify 2-3 locations within the blog post where we can add an image. To enhance the readibility of the blog post. 
-    Do not change anything in the blog post. Simply inject in the relevant locations the query for the images in the following format: 
+    const prompt = `Your job is to rewrite this blog post exactly as is, but identify 2-3 strategic locations where adding an image would enhance readability and engagement.
 
-    <image-query> 
-    The query for the image. 
-    </image-query>
+    Do not change any content in the blog post. Simply inject image blocks in relevant locations using this exact format:
 
-    Here is the blog post, don't change anything in the blog post: ${blogPost}
-
-    Output the blog post in the <blog> tag.
-
-    Example:
-    <blog>
-    This is the blog post.
+    <image>
     <image-query>
-    The query for the image.
+    A specific, descriptive search query for the image that relates to the surrounding content
     </image-query>
-    More text. 
-    </blog>
+    <image-caption>
+    A compelling caption that adds context and enhances the reader's understanding
+    </image-caption>
+    </image>
+
+    Guidelines:
+    - Place images at natural break points in the content
+    - Make image queries specific and searchable (e.g., "modern office workspace with laptops" not just "office")
+    - Write captions that complement the text and provide additional value
+    - Ensure each image enhances the narrative flow
+
+    Here is the blog post: ${blogPost}
+
+    Output the blog post with injected image blocks inside <blog> tags.
     `
 
     const response = await contentWriterAgent.generate(prompt);
@@ -46,26 +49,29 @@ const blogImagePlaceholderStep = createStep({
 
 const extractImageQueriesStep = createStep({
   id: "extract-image-queries-step",
-  description: "Extract image queries from a blog post",
+  description: "Extract image queries and captions from a blog post",
   inputSchema: z.object({
     blogPost: z.string()
   }),
   outputSchema: z.object({
     imageSearchQueries: z.array(z.string()),
+    imageCaptions: z.array(z.string()),
     blogPost: z.string()
   }),
   execute: async ({ inputData }) => {
     const { blogPost } = inputData;
 
     const imageTagQueries = blogPost.match(/<image-query>(.*?)<\/image-query>/gs);
+    const imageCaptionTags = blogPost.match(/<image-caption>(.*?)<\/image-caption>/gs);
 
     if (!imageTagQueries) {
       throw new Error("No image tag queries found");
     }
 
     const imageSearchQueries = imageTagQueries.map((query) => query.replace(/<image-query>(.*?)<\/image-query>/gs, "$1").trim());
+    const imageCaptions = imageCaptionTags ? imageCaptionTags.map((caption) => caption.replace(/<image-caption>(.*?)<\/image-caption>/gs, "$1").trim()) : [];
 
-    return { imageSearchQueries, blogPost };
+    return { imageSearchQueries, imageCaptions, blogPost };
   }
 });
 
@@ -74,14 +80,16 @@ const imageSearchStep = createStep({
   description: "Search for images for a blog post",
   inputSchema: z.object({
     imageSearchQueries: z.array(z.string()),
+    imageCaptions: z.array(z.string()),
     blogPost: z.string()
   }),
   outputSchema: z.object({
     images: z.array(z.string()),
+    imageCaptions: z.array(z.string()),
     blogPost: z.string()
   }),
   execute: async ({ inputData }) => {
-    const { imageSearchQueries, blogPost } = inputData;
+    const { imageSearchQueries, imageCaptions, blogPost } = inputData;
     let foundImages: string[] = [];
     for (const query of imageSearchQueries) {
       const searchResults = await imageSearch(query);
@@ -90,6 +98,7 @@ const imageSearchStep = createStep({
 
     return {
       images: foundImages,
+      imageCaptions,
       blogPost
     };
   }
@@ -97,9 +106,10 @@ const imageSearchStep = createStep({
 
 const injectImagesStep = createStep({
   id: "inject-images-step",
-  description: "Inject actual images into the blog post, replacing image query tags",
+  description: "Inject actual images into the blog post, replacing image blocks with markdown format",
   inputSchema: z.object({
     images: z.array(z.string()),
+    imageCaptions: z.array(z.string()),
     blogPost: z.string()
   }),
   outputSchema: z.object({
@@ -107,15 +117,20 @@ const injectImagesStep = createStep({
     images: z.array(z.string())
   }),
   execute: async ({ inputData }) => {
-    const { images, blogPost } = inputData;
+    const { images, imageCaptions, blogPost } = inputData;
     
     let finalBlogPost = blogPost;
     let imageIndex = 0;
     
-    // Replace each <image-query> tag with the corresponding actual image
-    finalBlogPost = finalBlogPost.replace(/<image-query>(.*?)<\/image-query>/gs, () => {
+    // Replace each complete <image> block with markdown format
+    finalBlogPost = finalBlogPost.replace(/<image>\s*<image-query>.*?<\/image-query>\s*<image-caption>.*?<\/image-caption>\s*<\/image>/gs, () => {
       if (imageIndex < images.length) {
-        return images[imageIndex++];
+        const imageUrl = images[imageIndex];
+        const caption = imageIndex < imageCaptions.length ? imageCaptions[imageIndex] : '';
+        imageIndex++;
+        
+        // Format as: ![](image_url)\n*caption*
+        return `![](${imageUrl})\n*${caption}*`;
       }
       return ''; // Remove tag if no image available
     });

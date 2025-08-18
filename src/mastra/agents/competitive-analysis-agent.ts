@@ -1,28 +1,23 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
-import { mcp, getResearchTools, getFilteredTools } from '../tools/mcp';
-import { z } from 'zod';
+import { mcp, getFilteredTools } from '../tools/mcp';
+import { wrapTool } from '../tools/tool-wrapper';
 import { getBrandFundamentalsTool } from '../tools/get-brand-fundamentals-tool';
+import { perplexityAskTool } from '../tools/perplexity-research';
 
-// Option A: Use pre-defined research tools
 
 const competitiveAnalysisTools = await getFilteredTools({
-    allowedTools: [
-        'perplexityAsk_perplexity_ask',
-        'firecrawlMCP_firecrawl_scrape',
-        'firecrawlMCP_firecrawl_map',
-        'firecrawlMCP_firecrawl_crawl',
-        'firecrawlMCP_firecrawl_check_crawl_status',
-        'firecrawlMCP_firecrawl_search',
-        'firecrawlMCP_firecrawl_extract',
-        'firecrawlMCP_firecrawl_deep_research',
-        'firecrawlMCP_firecrawl_generate_llmstxt',
-        // 'dataForSEO_datalabs_search_intent',
-        // 'dataForSEO_search',
-        // 'dataForSEO_fetch'
-    ]
+  allowedTools: [
+      'firecrawlMCP_firecrawl_scrape',
+      'firecrawlMCP_firecrawl_map',
+      'firecrawlMCP_firecrawl_crawl',
+      'firecrawlMCP_firecrawl_check_crawl_status',
+      'firecrawlMCP_firecrawl_search',
+      'firecrawlMCP_firecrawl_extract',
+      'firecrawlMCP_firecrawl_deep_research',
+      'firecrawlMCP_firecrawl_generate_llmstxt',
+  ]
 });
-
 export const competitiveAnalysisAgent = new Agent({
   name: 'Competitive Analysis Agent',
   instructions: `
@@ -37,12 +32,16 @@ Your analysis framework:
 
 Never just summarize - always look for what's MISSING or WEAK that we can exploit.
 
+All tools now have automatic retry logic:
+- External APIs: 5 retries with 2s base delay
+- Expensive operations: 2 retries with 3s base delay  
+- Standard tools: 3 retries with 1s base delay
 
+If a tool fails, you'll get clear instructions on what to try next.
 `,
   model: openai(`gpt-4o`),
   tools: {
     ...competitiveAnalysisTools,
-    // getBrandFundamentalsTool
-    // ...(await mcp.getTools()),
+    perplexityAskTool,
   },
 });
