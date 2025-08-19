@@ -1,0 +1,11 @@
+{
+  "name": "docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Documentation app - no dev server needed'",
+    "build": "echo 'Documentation build completed'",
+    "lint": "echo 'No linting needed for docs'",
+    "check-types": "echo 'No type checking needed for docs'"
+  }
+}
