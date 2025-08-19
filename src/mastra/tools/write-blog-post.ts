@@ -1,7 +1,7 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { mastra } from "..";
- 
+import { blogWritingWorkflow } from "../workflows/blog-writing-workflow";
+
 export const writeBlogPostTool = createTool({
     id: "write-blog-post-tool",
     description: "Writes a blog post",
@@ -15,9 +15,8 @@ export const writeBlogPostTool = createTool({
     }),
     execute: async ({ context, mastra }) => {
     const { topic, brand } = context;
-    const workflow = mastra.getWorkflow("blog-writing-workflow");
-    const run = await workflow!.createRunAsync({});
-``
+    const run = await blogWritingWorkflow.createRunAsync({});
+
     const runResult = await run!.start({
         inputData: {
         topic: topic,

@@ -47,7 +47,7 @@ export const mastra = new Mastra({
   agents: { researchAgent, contentWriterAgent, competitiveAnalysisAgent, imageSearchAgent },
   workflows: { blogWritingWorkflow, blogImageWorkflow },
   mcpServers: {
-    seoBlogsMCP
+    seoBlogsMCP: seoBlogsMCP,
   },
   storage: new LibSQLStore({
     url: "file:./mastra.db",
