@@ -1,9 +1,33 @@
 import { createTool } from "@mastra/core";
 import { z } from "zod";
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 
 export const getBrandFundamentals = async (brand: string) => {
-    console.log("brand", brand);
-    return BRAND_FUNDAMENTALS;
+    console.log("Reading brand fundamentals for:", brand);
+    
+    // Look for brand fundamentals file in .vibeflow/strategy/
+    const brandFundamentalsPath = join(process.cwd(), '.vibeflow', 'strategy', 'brandFundamentals.md');
+    
+    if (!existsSync(brandFundamentalsPath)) {
+        throw new Error(`Brand fundamentals file not found at ${brandFundamentalsPath}. Please run 'vibeflow init' to create the project structure.`);
+    }
+    
+    try {
+        const brandFundamentals = readFileSync(brandFundamentalsPath, 'utf8');
+        
+        if (!brandFundamentals.trim()) {
+            throw new Error(`Brand fundamentals file is empty at ${brandFundamentalsPath}. Please add your brand strategy content to this file.`);
+        }
+        
+        console.log("✅ Successfully loaded brand fundamentals from file");
+        return brandFundamentals;
+    } catch (error) {
+        if (error instanceof Error && error.message.includes('Brand fundamentals file')) {
+            throw error; // Re-throw our custom errors
+        }
+        throw new Error(`Failed to read brand fundamentals file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 }
 
 export const getBrandFundamentalsTool = createTool({

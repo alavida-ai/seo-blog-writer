@@ -1,0 +1,38 @@
+{
+  "name": "seo-blogs-cli",
+  "version": "0.0.1",
+  "type": "module",
+  "dependencies": {
+    "@types/figlet": "^1.7.0",
+    "@types/prompts": "^2.4.9",
+    "seo-blog-mastra": "workspace:*",
+    "boxen": "^7.0.0",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0",
+    "figlet": "^1.8.2",
+    "gradient-string": "^3.0.0",
+    "prompts": "^2.4.2",
+    "dotenv": "^16.4.7",
+    "@mastra/core": "^0.13.2",
+    "@mastra/mcp": "^0.10.11"
+  },
+  "bin": {
+    "vibeflow": "dist/bin.cjs"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
+  "scripts": {
+    "build": "esbuild src/bin.ts --bundle --platform=node --format=cjs --outfile=dist/bin.cjs --packages=bundle --external:fsevents --external:sury --external:@valibot/to-json-schema --external:effect --external:esbuild --external:@babel/preset-typescript/package.json",
+    "dev": "tsx src/bin.ts",
+    "link": "npm link"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.6",
+    "tsx": "^4.19.1",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  }
+}

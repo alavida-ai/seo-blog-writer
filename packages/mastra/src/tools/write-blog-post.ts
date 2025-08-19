@@ -4,6 +4,8 @@ import { RuntimeContext } from "@mastra/core/di";
 import { blogWritingWorkflow } from "../workflows/blog-writing-workflow";
 import { RepoRuntimeContext } from "../constants";
 import { slackNotificationOutputSchema } from "../workflows/blog-writing-workflow";
+import { existsSync } from "fs";
+import { join } from "path";
 
 export const writeBlogPostTool = createTool({
     id: "write-blog-post-tool",
@@ -29,6 +31,27 @@ export const writeBlogPostTool = createTool({
     }),
     execute: async ({ context, mastra, runtimeContext }) => {
     const { topic, brand, owner, repo, contentPath } = context;
+    
+    // Validate .vibeflow directory and brand fundamentals exist
+    const vibeflowDir = join(process.cwd(), '.vibeflow');
+    const strategyDir = join(vibeflowDir, 'strategy');
+    const brandFundamentalsPath = join(strategyDir, 'brandFundamentals.md');
+    
+    console.log(`🔍 Checking project structure...`);
+    
+    if (!existsSync(vibeflowDir)) {
+        throw new Error(`❌ Project not initialized. Please run 'vibeflow init' to set up the project structure.\n\nMissing: .vibeflow directory`);
+    }
+    
+    if (!existsSync(strategyDir)) {
+        throw new Error(`❌ Strategy directory missing. Please run 'vibeflow init' to set up the project structure.\n\nMissing: .vibeflow/strategy directory`);
+    }
+    
+    if (!existsSync(brandFundamentalsPath)) {
+        throw new Error(`❌ Brand fundamentals file missing. Please run 'vibeflow init' to create the template.\n\nMissing: .vibeflow/strategy/brandFundamentals.md\n\nThis file should contain your brand strategy, positioning, and key messaging.`);
+    }
+    
+    console.log(`✅ Project structure validated`);
     
     // Set repository context into runtime context
     runtimeContext?.set("repo-owner", owner);
