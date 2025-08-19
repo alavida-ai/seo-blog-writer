@@ -3,6 +3,7 @@ import { z } from "zod";
 import { RuntimeContext } from "@mastra/core/di";
 import { blogWritingWorkflow } from "../workflows/blog-writing-workflow";
 import { RepoRuntimeContext } from "../constants";
+import { slackNotificationOutputSchema } from "../workflows/blog-writing-workflow";
 
 export const writeBlogPostTool = createTool({
     id: "write-blog-post-tool",
@@ -52,8 +53,10 @@ export const writeBlogPostTool = createTool({
     
     // Extract the values from the workflow result
     // The workflow returns the final step output directly
-    const result = runResult as any;
-    const { content, title, filePath } = result;
+    const { title, filePath } = (runResult as any).result;
+    
+    // Handle different possible result structures
+    
 
     return {
         title: title,

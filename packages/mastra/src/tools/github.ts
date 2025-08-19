@@ -9,10 +9,11 @@ export const createGitHubPullRequest = async (params: {
   title: string;
   content: string;
   filename: string;
+  contentPath: string;
   baseBranch?: string;
   githubToken: string;
 }) => {
-  const { owner, repo, title, content, filename, baseBranch = "main", githubToken } = params;
+  const { owner, repo, title, content, filename, contentPath, baseBranch = "main", githubToken } = params;
   
   const octokit = new Octokit({
     auth: githubToken,
@@ -40,7 +41,9 @@ export const createGitHubPullRequest = async (params: {
     });
 
     // Create the blog post file in the new branch
-    const filePath = `apps/docs/content/blogs/${filename}`;
+    // Normalize contentPath for GitHub API (remove leading ./ and ensure proper path)
+    const normalizedContentPath = contentPath.replace(/^\.\//, '').replace(/\/$/, '');
+    const filePath = `${normalizedContentPath}/${filename}`;
     await octokit.rest.repos.createOrUpdateFileContents({
       owner,
       repo,
@@ -80,6 +83,7 @@ const createPullRequestSchema = z.object({
   title: z.string().describe("Blog post title"),
   content: z.string().describe("Blog post content with frontmatter"),
   filename: z.string().describe("Blog post filename"),
+  contentPath: z.string().describe("Path to content directory where blog posts should be written"),
   baseBranch: z.string().default("main").describe("Base branch to create PR against"),
   githubToken: z.string().describe("GitHub personal access token"),
 });
@@ -95,7 +99,7 @@ export const createPullRequestTool = createTool({
     fileUrl: z.string().describe("URL to the file in the repository"),
   }),
   execute: async ({ context }) => {
-    const { owner, repo, title, content, filename, baseBranch, githubToken } = context;
+    const { owner, repo, title, content, filename, contentPath, baseBranch, githubToken } = context;
     
     const octokit = new Octokit({
       auth: githubToken,
@@ -123,7 +127,9 @@ export const createPullRequestTool = createTool({
       });
 
       // Create the blog post file in the new branch
-      const filePath = `apps/docs/content/blogs/${filename}`;
+      // Normalize contentPath for GitHub API (remove leading ./ and ensure proper path)
+      const normalizedContentPath = contentPath.replace(/^\.\//, '').replace(/\/$/, '');
+      const filePath = `${normalizedContentPath}/${filename}`;
       await octokit.rest.repos.createOrUpdateFileContents({
         owner,
         repo,

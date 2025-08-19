@@ -262,6 +262,12 @@ const contentWritingStep = createStep({
     const { content, title } = object;
 
     console.log('this is the reasoning', reasoning);
+    console.log('📝 Content writing step completed:', { title: title ? 'present' : 'missing', contentLength: content?.length || 0 });
+    
+    if (!title || !content) {
+        throw new Error(`Content writing step failed - missing required fields. Title: ${title}, Content length: ${content?.length || 0}`);
+    }
+    
     return {
       content: content,
       title: title,
@@ -333,7 +339,7 @@ const createPullRequestOutputSchema = z.object({
   seoData: seoResearchOutputSchema
 });
 
-const slackNotificationOutputSchema = z.object({
+export const slackNotificationOutputSchema = z.object({
   pullRequestUrl: z.string(),
   branchName: z.string(),
   pullRequestNumber: z.number(),
@@ -357,7 +363,7 @@ const addImagesStep = createStep({
     // Get content path from runtime context
     const contentPath = runtimeContext?.get("content-path") as string;
     if (!contentPath) {
-      throw new Error("Content path not found in runtime context. Ensure discover-repository-context was called and runtime context is set.");
+      throw new Error("Content path not found in runtime context. Ensure write-blog-post tool was called with proper context.");
     }
     
     console.log(`🖼️ Adding images to blog post: ${title}`);
@@ -389,6 +395,7 @@ const addImagesStep = createStep({
       );
       
       console.log(`✅ Blog post written without images: ${filePath}`);
+      console.log(`🔍 addImagesStep return values:`, { title: title ? 'present' : 'missing', filePath: filePath ? 'present' : 'missing' });
       
       return {
         content,
@@ -462,6 +469,7 @@ const addImagesStep = createStep({
       );
       
       console.log(`✅ Blog post written without images: ${filePath}`);
+      console.log(`🔍 addImagesStep return values (error case):`, { title: title ? 'present' : 'missing', filePath: filePath ? 'present' : 'missing' });
       
       return {
         content,
@@ -486,15 +494,16 @@ const createPullRequestStep = createStep({
     // Extract repository info from runtime context
     const githubOwner = runtimeContext?.get("repo-owner") as string;
     const githubRepo = runtimeContext?.get("repo-name") as string;
+    const contentPath = runtimeContext?.get("content-path") as string;
     const githubToken = process.env.GITHUB_TOKEN; // Keep token as env var for security
     
     if (!githubToken) {
       throw new Error("Missing required environment variable: GITHUB_TOKEN");
     }
     
-    if (!githubOwner || !githubRepo) {
+    if (!githubOwner || !githubRepo || !contentPath) {
       throw new Error(
-        "Repository context not found in runtime context. Ensure discover-repository-context was called and runtime context is set."
+        "Repository context not found in runtime context. Ensure write-blog-post tool was called with proper owner/repo/contentPath values."
       );
     }
     
@@ -530,6 +539,7 @@ const createPullRequestStep = createStep({
         title,
         content: blogContent,
         filename: sanitizedFilename,
+        contentPath,
         baseBranch: 'main',
         githubToken,
       });
@@ -577,7 +587,7 @@ const slackNotificationStep = createStep({
     
     if (!githubOwner || !githubRepo) {
       throw new Error(
-        "Repository context not found in runtime context. Ensure discover-repository-context was called and runtime context is set."
+        "Repository context not found in runtime context. Ensure write-blog-post tool was called with proper owner/repo values."
       );
     }
     

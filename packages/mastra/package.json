@@ -37,6 +37,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:github": "tsx src/tools/test-github.ts",
+    "test:blog-workflow": "tsx src/tools/test-blog-workflow.ts",
     "build": "tsc",
     "clean": "rm -rf dist",
     "dev": "mastra dev",

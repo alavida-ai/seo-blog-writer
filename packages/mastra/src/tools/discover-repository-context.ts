@@ -32,8 +32,12 @@ This tool helps you discover the current repository's structure and conventions 
 export const discoverRepositoryContextTool = createTool({
   id: "discover-repository-context",
   description: "This tool is used to discover the current repository's structure and conventions before creating blog posts.",
-  outputSchema: z.string(),
+  outputSchema: z.object({
+    prompt: z.string(),
+  }),
   execute: async () => {
-    return prompt;
+    return {
+      prompt,
+    };
   }
 });

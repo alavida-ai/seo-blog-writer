@@ -12,5 +12,5 @@ export const seoBlogsMCP = new MCPServer({
         writeBlogPost: writeBlogPostTool,
     },
     releaseDate: new Date().toISOString(),
-    prompts: promptHandlers,
+    // prompts: promptHandlers,
 });
