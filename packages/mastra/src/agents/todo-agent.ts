@@ -1,4 +1,3 @@
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { Agent } from '@mastra/core/agent';
 import { todoWriteTool } from '../tools/todo';
 import { todoReadTool } from '../tools/todo';

@@ -1,5 +1,5 @@
 {
-  "name": "seo-blog-workspace",
+  "name": "seo-blog",
   "private": true,
   "scripts": {
     "build": "turbo run build",

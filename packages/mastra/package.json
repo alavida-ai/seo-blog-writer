@@ -1,46 +1,73 @@
 {
-    "name": "seo-blog-mastra",
-    "version": "1.0.0",
-    "main": "./src/index.ts",
-    "module": "./src/index.ts",
-    "types": "./src/index.ts",
-    "exports": {
-        ".": "./src/index.ts"
+  "name": "seo-blog-mastra",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
-    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1",
-      "dev": "mastra dev",
-      "build": "mastra build",
-      "start": "mastra start"
+    "./agents": {
+      "types": "./dist/agents/index.d.ts",
+      "import": "./dist/agents/index.js"
     },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "description": "",
-    "type": "module",
-    "engines": {
-      "node": ">=20.9.0"
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "import": "./dist/tools/index.js"
     },
-    "dependencies": {
-      "@mastra/core": "^0.13.2",
-      "@mastra/libsql": "^0.13.2",
-      "dotenv": "^16.4.7",
-      "@mastra/loggers": "^0.10.6",
-      "@mastra/mcp": "^0.10.11",
-      "@mastra/memory": "^0.12.2",
-      "@opentelemetry/auto-instrumentations-node": "^0.62.1",
-      "@opentelemetry/resources": "^2.0.1",
-      "@opentelemetry/sdk-node": "^0.203.0",
-      "@opentelemetry/sdk-trace-node": "^2.0.1",
-      "@opentelemetry/semantic-conventions": "^1.36.0",
-      "@tavily/core": "^0.5.10",
-      "replicate": "^1.0.1",
-      "zod": "^3.25.76"
+    "./workflows": {
+      "types": "./dist/workflows/index.d.ts",
+      "import": "./dist/workflows/index.js"
     },
-    "devDependencies": {
-      "@types/node": "^24.3.0",
-      "mastra": "^0.10.21",
-      "typescript": "^5.9.2"
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/index.d.ts",
+      "import": "./dist/constants/index.js"
     }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "mastra dev",
+    "deploy": "mastra build",
+    "start": "mastra start",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "@mastra/core": "^0.13.2",
+    "@mastra/mcp": "^0.10.11",
+    "@openrouter/ai-sdk-provider": "0.7.5",
+    "@opentelemetry/auto-instrumentations-node": "^0.62.1",
+    "@opentelemetry/resources": "^2.0.1",
+    "@opentelemetry/sdk-node": "^0.203.0",
+    "@opentelemetry/sdk-trace-node": "^2.0.1",
+    "@opentelemetry/semantic-conventions": "^1.36.0",
+    "@tavily/core": "^0.5.10",
+    "dotenv": "^16.4.7",
+    "replicate": "^1.0.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "mastra": "^0.10.21",
+    "typescript": "^5.9.2"
   }
-  
+}

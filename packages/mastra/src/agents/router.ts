@@ -1,5 +1,4 @@
 
-
 import { createOpenRouter, OpenRouterProvider } from '@openrouter/ai-sdk-provider';
 
 // Singleton MCP Client instance
