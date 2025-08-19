@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "seo-blogs-mcp": {
-      "url": "http://localhost:4111/api/mcp/seoBlogsMCP/sse"
+      "url": "http://localhost:4111/api/mcp/seoBlogsMCP/mcp"
     }
   }
 }

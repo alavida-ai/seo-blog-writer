@@ -2,8 +2,10 @@ export * from "./blog";
 export * from "./generate-images";
 export * from "./search";
 export * from "./todo";
-export * from "./write-blog-post"; 
+export * from "./write-blog-post";
+export * from "./discover-repository-context"; 
 export * from "./generate-hero-image";
 export * from "./perplexity-research";
-export * from './search'
-export * from './write-report'
+export * from './write-report';
+export * from "./github";
+export * from "./slack";

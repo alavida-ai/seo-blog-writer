@@ -36,6 +36,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:github": "tsx src/tools/test-github.ts",
     "build": "tsc",
     "clean": "rm -rf dist",
     "dev": "mastra dev",
@@ -54,6 +55,7 @@
   "dependencies": {
     "@mastra/core": "^0.13.2",
     "@mastra/mcp": "^0.10.11",
+    "@octokit/rest": "^21.0.2",
     "@openrouter/ai-sdk-provider": "0.7.5",
     "@opentelemetry/auto-instrumentations-node": "^0.62.1",
     "@opentelemetry/resources": "^2.0.1",
@@ -68,6 +70,7 @@
   "devDependencies": {
     "@types/node": "^24.3.0",
     "mastra": "^0.10.21",
+    "tsx": "^4.19.1",
     "typescript": "^5.9.2"
   }
 }

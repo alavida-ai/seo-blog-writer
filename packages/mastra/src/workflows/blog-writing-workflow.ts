@@ -6,6 +6,8 @@ import { competitiveAnalysisAgent } from "../agents/competitive-analysis-agent";
 import { contentWriterAgent } from "../agents/content-writer-agent";
 
 import { writeBlogPost } from "../tools/write-report";
+import { createGitHubPullRequest } from "../tools/github";
+import { sendSlackNotification, formatBlogNotificationMessage } from "../tools/slack";
 
 const seoResearchOutputSchema = z.object({
     primaryKeyword: z.object({
@@ -316,7 +318,32 @@ const prepareBlogPostStep = createStep({
 const addImagesOutputSchema = z.object({
   content: z.string(),
   title: z.string(),
-  filePath: z.string()
+  filePath: z.string(),
+  seoData: seoResearchOutputSchema
+});
+
+const createPullRequestOutputSchema = z.object({
+  pullRequestUrl: z.string(),
+  branchName: z.string(),
+  pullRequestNumber: z.number(),
+  fileUrl: z.string(),
+  content: z.string(),
+  title: z.string(),
+  filePath: z.string(),
+  seoData: seoResearchOutputSchema
+});
+
+const slackNotificationOutputSchema = z.object({
+  pullRequestUrl: z.string(),
+  branchName: z.string(),
+  pullRequestNumber: z.number(),
+  fileUrl: z.string(),
+  content: z.string(),
+  title: z.string(),
+  filePath: z.string(),
+  seoData: seoResearchOutputSchema,
+  slackNotificationSent: z.boolean(),
+  slackMessage: z.string()
 });
 
 const addImagesStep = createStep({
@@ -324,10 +351,17 @@ const addImagesStep = createStep({
   description: "Add images to the blog post and write the final version to file",
   inputSchema: prepareBlogPostOutputSchema,
   outputSchema: addImagesOutputSchema,
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, runtimeContext }) => {
     const { content, title, seoData } = inputData;
     
+    // Get content path from runtime context
+    const contentPath = runtimeContext?.get("content-path") as string;
+    if (!contentPath) {
+      throw new Error("Content path not found in runtime context. Ensure discover-repository-context was called and runtime context is set.");
+    }
+    
     console.log(`🖼️ Adding images to blog post: ${title}`);
+    console.log(`📁 Content path: ${contentPath}`);
     
     // Get the blog image workflow from mastra
     const imageWorkflow = mastra!.getWorkflow("blogImageWorkflow");
@@ -350,7 +384,8 @@ const addImagesStep = createStep({
         sanitizedTitle,
         content,
         title,
-        seoData
+        seoData,
+        contentPath
       );
       
       console.log(`✅ Blog post written without images: ${filePath}`);
@@ -358,7 +393,8 @@ const addImagesStep = createStep({
       return {
         content,
         title,
-        filePath
+        filePath,
+        seoData
       };
     }
     
@@ -389,7 +425,8 @@ const addImagesStep = createStep({
         sanitizedTitle,
         contentWithImages,
         title,
-        seoData
+        seoData,
+        contentPath
       );
       
       console.log(`✅ Blog post updated with images: ${newFilePath}`);
@@ -397,7 +434,8 @@ const addImagesStep = createStep({
       return {
         content: contentWithImages,
         title,
-        filePath: newFilePath
+        filePath: newFilePath,
+        seoData
       };
       
     } catch (error) {
@@ -419,7 +457,8 @@ const addImagesStep = createStep({
         sanitizedTitle,
         content,
         title,
-        seoData
+        seoData,
+        contentPath
       );
       
       console.log(`✅ Blog post written without images: ${filePath}`);
@@ -427,7 +466,162 @@ const addImagesStep = createStep({
       return {
         content,
         title,
-        filePath
+        filePath,
+        seoData
+      };
+    }
+  }
+});
+
+const createPullRequestStep = createStep({
+  id: "create-pull-request-step",
+  description: "Create a GitHub pull request with the blog post",
+  inputSchema: addImagesOutputSchema,
+  outputSchema: createPullRequestOutputSchema,
+  execute: async ({ inputData, mastra, runtimeContext }) => {
+    const { content, title, filePath, seoData } = inputData;
+    
+    console.log(`🚀 Creating GitHub pull request for: ${title}`);
+    
+    // Extract repository info from runtime context
+    const githubOwner = runtimeContext?.get("repo-owner") as string;
+    const githubRepo = runtimeContext?.get("repo-name") as string;
+    const githubToken = process.env.GITHUB_TOKEN; // Keep token as env var for security
+    
+    if (!githubToken) {
+      throw new Error("Missing required environment variable: GITHUB_TOKEN");
+    }
+    
+    if (!githubOwner || !githubRepo) {
+      throw new Error(
+        "Repository context not found in runtime context. Ensure discover-repository-context was called and runtime context is set."
+      );
+    }
+    
+    // Create a filename from the title (sanitize it for filesystem)
+    const sanitizedFilename = title
+      .toLowerCase()
+      .replace(/[<>:"/\\|?*]/g, '') // Remove only filesystem-unsafe characters
+      .replace(/[^\w\s-]/g, '') // Keep only word characters, spaces, and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single
+      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+      .trim() + '.md';
+    
+    // Read the blog post content that was written to local file
+    // We need to ensure we have the full content with frontmatter
+    let blogContent = content;
+    
+    // If content doesn't start with frontmatter, we need to read from the file
+    if (!content.startsWith('---')) {
+      const fs = await import('fs/promises');
+      try {
+        blogContent = await fs.readFile(filePath, 'utf8');
+      } catch (error) {
+        console.warn(`⚠️ Could not read file content from ${filePath}, using provided content`);
+      }
+    }
+    
+    try {
+      // Use the GitHub function to create the pull request
+      const result = await createGitHubPullRequest({
+        owner: githubOwner,
+        repo: githubRepo,
+        title,
+        content: blogContent,
+        filename: sanitizedFilename,
+        baseBranch: 'main',
+        githubToken,
+      });
+      
+      console.log(`✅ Pull request created: ${result.pullRequestUrl}`);
+      
+      return {
+        ...result,
+        content,
+        title,
+        filePath,
+        seoData
+      };
+      
+    } catch (error) {
+      console.error("❌ Error creating GitHub pull request:", error);
+      throw new Error(`Failed to create GitHub pull request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+});
+
+const slackNotificationStep = createStep({
+  id: "slack-notification-step",
+  description: "Send Slack notification about the new blog post",
+  inputSchema: createPullRequestOutputSchema,
+  outputSchema: slackNotificationOutputSchema,
+  execute: async ({ inputData, runtimeContext }) => {
+    const { title, pullRequestUrl, fileUrl, content, filePath, branchName, pullRequestNumber, seoData } = inputData;
+    
+    console.log(`📱 Sending Slack notification for: ${title}`);
+    
+    // Extract repository info from runtime context
+    const githubOwner = runtimeContext?.get("repo-owner") as string;
+    const githubRepo = runtimeContext?.get("repo-name") as string;
+    const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL; // Keep webhook as env var for security
+    
+    if (!slackWebhookUrl) {
+      console.warn("⚠️ SLACK_WEBHOOK_URL not configured, skipping Slack notification");
+      return {
+        ...inputData,
+        slackNotificationSent: false,
+        slackMessage: "Slack webhook URL not configured"
+      };
+    }
+    
+    if (!githubOwner || !githubRepo) {
+      throw new Error(
+        "Repository context not found in runtime context. Ensure discover-repository-context was called and runtime context is set."
+      );
+    }
+    
+    try {
+      // SEO data is now passed through the pipeline
+      if (!seoData) {
+        throw new Error("SEO data not found in input data");
+      }
+      
+      // Format the notification message
+      const notificationMessage = formatBlogNotificationMessage({
+        title,
+        contentAngle: seoData.contentAngle,
+        primaryKeyword: seoData.primaryKeyword.keyword,
+        secondaryKeywords: seoData.secondaryKeywords.map((kw: any) => kw.keyword),
+        estimatedTrafficPotential: seoData.estimatedTrafficPotential,
+        pullRequestUrl,
+        fileUrl,
+        githubOwner,
+        githubRepo,
+      });
+      
+      // Send the Slack notification
+      await sendSlackNotification({
+        webhookUrl: slackWebhookUrl,
+        message: notificationMessage,
+      });
+      
+      console.log(`✅ Slack notification sent for: ${title}`);
+      
+      return {
+        ...inputData,
+        slackNotificationSent: true,
+        slackMessage: "Notification sent successfully"
+      };
+      
+    } catch (error) {
+      console.error("❌ Error sending Slack notification:", error);
+      
+      // Don't fail the entire workflow if Slack notification fails
+      return {
+        ...inputData,
+        slackNotificationSent: false,
+        slackMessage: `Failed to send notification: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -435,9 +629,9 @@ const addImagesStep = createStep({
 
 export const blogWritingWorkflow = createWorkflow({
     id: "blog-writing-workflow",
-    description: "Research a topic, analyse the competitive landscape, outline the content, write the content, prepare the blog post, and add images",
+    description: "Research a topic, analyse the competitive landscape, outline the content, write the content, prepare the blog post, add images, create a GitHub pull request, and send Slack notification",
     inputSchema: inputSchema,
-    outputSchema: addImagesOutputSchema,
+    outputSchema: slackNotificationOutputSchema,
 })
   .then(seoResearchStep)
   .then(competitiveAnalysisStep)
@@ -445,4 +639,6 @@ export const blogWritingWorkflow = createWorkflow({
   .then(contentWritingStep)
   .then(prepareBlogPostStep)
   .then(addImagesStep)
+  .then(createPullRequestStep)
+  .then(slackNotificationStep)
   .commit();
