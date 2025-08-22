@@ -2,12 +2,31 @@ import { createTool } from "@mastra/core";
 import { z } from "zod";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { execSync } from "child_process";
+
+/**
+ * Find the git repository root directory or fall back to project root
+ */
+function findProjectRoot(): string {
+    try {
+        // Try to find git root first
+        const gitRoot = execSync('git rev-parse --show-toplevel', { 
+            encoding: 'utf8',
+            stdio: 'pipe'
+        }).trim();
+        return gitRoot;
+    } catch {
+        // Fall back to MASTRA_PROJECT_ROOT or current working directory
+        return process.env.MASTRA_PROJECT_ROOT || process.cwd();
+    }
+}
 
 export const getBrandFundamentals = async (brand: string) => {
     console.log("Reading brand fundamentals for:", brand);
     
     // Look for brand fundamentals file in .vibeflow/strategy/
-    const brandFundamentalsPath = join(process.cwd(), '.vibeflow', 'strategy', 'brandFundamentals.md');
+    const projectRoot = findProjectRoot();
+    const brandFundamentalsPath = join(projectRoot, '.vibeflow', 'strategy', 'brandFundamentals.md');
     
     if (!existsSync(brandFundamentalsPath)) {
         throw new Error(`Brand fundamentals file not found at ${brandFundamentalsPath}. Please run 'vibeflow init' to create the project structure.`);

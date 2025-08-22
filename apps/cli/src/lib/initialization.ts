@@ -243,8 +243,8 @@ For more information, see the project README or run \`vibeflow --help\`
     // Ensure .cursor/mcp.json configuration is properly set up
     ensureMCPConfig(projectRoot);
     
-    // Create .env file if it doesn't exist
-    const envFile = join(projectRoot, '.env');
+    // Create .env file in .vibeflow directory if it doesn't exist
+    const envFile = join(vibeflowDir, '.env');
     if (!existsSync(envFile)) {
       const envTemplate = `# SEO Blogs Environment Configuration
 # Add your API keys here
@@ -252,6 +252,7 @@ For more information, see the project README or run \`vibeflow --help\`
 # Required for AI operations
 OPENAI_API_KEY=your_openai_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
 
 # Required for research
 TAVILY_API_KEY=your_tavily_api_key_here
@@ -285,17 +286,18 @@ OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer your_langfuse_secret_key
   }
 }
 
-export function loadEnvironment(projectRoot: string): void {
-  const envFile = join(projectRoot, '.env');
+export async function loadEnvironment(projectRoot: string): Promise<void> {
+  const envFile = join(projectRoot, '.vibeflow', '.env');
   
   if (existsSync(envFile)) {
-    // Use dynamic import for dotenv since we're in ESM
-    import('dotenv').then(dotenv => {
+    try {
+      // Use dynamic import for dotenv since we're in ESM
+      const dotenv = await import('dotenv');
       dotenv.config({ path: envFile });
       console.log(chalk.gray('✅ Loaded environment variables from .env'));
-    }).catch(err => {
-      console.warn(chalk.yellow('⚠️  Failed to load .env file:', err.message));
-    });
+    } catch (err) {
+      console.warn(chalk.yellow('⚠️  Failed to load .env file:', err instanceof Error ? err.message : 'Unknown error'));
+    }
   } else {
     console.warn(chalk.yellow('⚠️  No .env file found. Some features may not work.'));
   }

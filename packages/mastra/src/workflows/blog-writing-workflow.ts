@@ -179,7 +179,7 @@ const contentResearchAndOutlineStep = createStep({
 
     The primary keyword is: ${seoResearchOutput.primaryKeyword.keyword}
 
-    The secondary keywords are: ${seoResearchOutput.secondaryKeywords.map(keyword => keyword.keyword).join(', ')}
+    The secondary keywords are: ${seoResearchOutput.secondaryKeywords.map((keyword: any) => keyword.keyword).join(', ')}
 
     You should include the primary goals of the blog post, and show the goals of each section and how they contribute to the primary goals.
 
@@ -230,7 +230,7 @@ const contentWritingStep = createStep({
     Write a comprehensive article based on this intelligence:
 
     Target keyword: ${seoResearchOutput.primaryKeyword.keyword}
-    Supporting keywords: ${seoResearchOutput.secondaryKeywords.map(keyword => keyword.keyword).join(', ')}
+    Supporting keywords: ${seoResearchOutput.secondaryKeywords.map((keyword: any) => keyword.keyword).join(', ')}
     Content outline: ${contentOutline}
     Content angle: ${seoResearchOutput.contentAngle}
 

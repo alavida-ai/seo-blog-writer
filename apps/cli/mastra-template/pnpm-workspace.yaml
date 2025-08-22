@@ -1,0 +1,4 @@
+packages:
+  - "apps/cli"
+  - "apps/mastra-app"
+  - "packages/mastra"

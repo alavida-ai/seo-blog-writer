@@ -2,7 +2,28 @@ import { createTool } from "@mastra/core";
 import { z } from "zod";
 
 import dotenv from "dotenv";
-dotenv.config({ path: '/Users/alexandergirardet/Code/vibeflow-projects/seo-blogs/.env' });
+import { join } from "path";
+import { execSync } from 'child_process';
+
+/**
+ * Find the git repository root directory or fall back to project root
+ */
+function findProjectRoot(): string {
+    try {
+        // Try to find git root first
+        const gitRoot = execSync('git rev-parse --show-toplevel', { 
+            encoding: 'utf8',
+            stdio: 'pipe'
+        }).trim();
+        return gitRoot;
+    } catch {
+        // Fall back to MASTRA_PROJECT_ROOT or current working directory
+        return process.env.MASTRA_PROJECT_ROOT || process.cwd();
+    }
+}
+
+const projectRoot = findProjectRoot();
+dotenv.config({ path: join(projectRoot, '.vibeflow', '.env') });
 
 // Direct function for use in workflows
 export const sendSlackNotification = async (params: {

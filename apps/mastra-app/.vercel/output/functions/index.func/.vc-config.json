@@ -1,6 +1,0 @@
-{
-  "handler": "index.mjs",
-  "launcherType": "Nodejs",
-  "runtime": "nodejs20.x",
-  "shouldAddHelpers": true
-}

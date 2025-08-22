@@ -5,7 +5,25 @@ import { blogWritingWorkflow } from "../workflows/blog-writing-workflow";
 import { RepoRuntimeContext } from "../constants";
 import { slackNotificationOutputSchema } from "../workflows/blog-writing-workflow";
 import { existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { execSync } from "child_process";
+
+/**
+ * Find the git repository root directory or fall back to project root
+ */
+function findProjectRoot(): string {
+    try {
+        // Try to find git root first
+        const gitRoot = execSync('git rev-parse --show-toplevel', { 
+            encoding: 'utf8',
+            stdio: 'pipe'
+        }).trim();
+        return gitRoot;
+    } catch {
+        // Fall back to MASTRA_PROJECT_ROOT or current working directory
+        return process.env.MASTRA_PROJECT_ROOT || process.cwd();
+    }
+}
 
 export const writeBlogPostTool = createTool({
     id: "write-blog-post-tool",
@@ -24,20 +42,22 @@ export const writeBlogPostTool = createTool({
         owner: z.string().describe("GitHub repository owner (e.g., 'alavida-ai')"),
         repo: z.string().describe("GitHub repository name (e.g., 'seo-blog-writer')"),
         contentPath: z.string().describe("Path to content directory where blog posts should be written (e.g., './apps/docs/content/blogs/')"),
+        projectRoot: z.string().optional().describe("Optional: Path to project root directory containing .vibeflow (defaults to git root or current directory)"),
     }),
     outputSchema: z.object({
         title: z.string().describe("The title of the blog post"),
         filePath: z.string().describe("The file path of the blog post")
     }),
     execute: async ({ context, mastra, runtimeContext }) => {
-    const { topic, brand, owner, repo, contentPath } = context;
+    const { topic, brand, owner, repo, contentPath, projectRoot: userProjectRoot } = context;
     
     // Validate .vibeflow directory and brand fundamentals exist
-    const vibeflowDir = join(process.cwd(), '.vibeflow');
+    const projectRoot = userProjectRoot || findProjectRoot();
+    const vibeflowDir = join(projectRoot, '.vibeflow');
     const strategyDir = join(vibeflowDir, 'strategy');
     const brandFundamentalsPath = join(strategyDir, 'brandFundamentals.md');
     
-    console.log(`🔍 Checking project structure...`);
+    console.log(`🔍 Checking project structure in: ${projectRoot}...`);
     
     if (!existsSync(vibeflowDir)) {
         throw new Error(`❌ Project not initialized. Please run 'vibeflow init' to set up the project structure.\n\nMissing: .vibeflow directory`);

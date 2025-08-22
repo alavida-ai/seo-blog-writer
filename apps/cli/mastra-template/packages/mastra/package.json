@@ -1,0 +1,77 @@
+{
+  "name": "seo-blog-mastra",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./agents": {
+      "types": "./dist/agents/index.d.ts",
+      "import": "./dist/agents/index.js"
+    },
+    "./tools": {
+      "types": "./dist/tools/index.d.ts",
+      "import": "./dist/tools/index.js"
+    },
+    "./workflows": {
+      "types": "./dist/workflows/index.d.ts",
+      "import": "./dist/workflows/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/index.d.ts",
+      "import": "./dist/constants/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:github": "tsx src/tools/test-github.ts",
+    "test:blog-workflow": "tsx src/tools/test-blog-workflow.ts",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "mastra dev",
+    "deploy": "mastra build",
+    "start": "mastra start",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "@mastra/core": "^0.13.2",
+    "@mastra/mcp": "^0.10.11",
+    "@octokit/rest": "^21.0.2",
+    "@openrouter/ai-sdk-provider": "0.7.5",
+    "@opentelemetry/auto-instrumentations-node": "^0.62.1",
+    "@opentelemetry/resources": "^2.0.1",
+    "@opentelemetry/sdk-node": "^0.203.0",
+    "@opentelemetry/sdk-trace-node": "^2.0.1",
+    "@opentelemetry/semantic-conventions": "^1.36.0",
+    "@tavily/core": "^0.5.10",
+    "dotenv": "^16.4.7",
+    "replicate": "^1.0.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "mastra": "^0.10.21",
+    "tsx": "^4.19.1",
+    "typescript": "^5.9.2"
+  }
+}

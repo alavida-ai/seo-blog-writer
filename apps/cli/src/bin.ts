@@ -4,11 +4,12 @@ import Table from 'cli-table3';
 import chalk from 'chalk';
 import boxen from 'boxen';
 import figlet from 'figlet';
-import prompts from 'prompts';
+import prompts from 'prompts';    
+// @ts-ignore - Figlet font import doesn't have proper TypeScript declarations
 import slant from 'figlet/importable-fonts/Slant.js';
 import gradient from 'gradient-string';
-import { initializeVibeflow, loadEnvironment } from './lib/initialization.js';
-import { startMCPServer, startMastraDev } from './lib/mcp-server.js';
+import { initializeVibeflow } from './lib/initialization.js';
+import { startMastraServer } from './lib/mcp-server.js';
 
 const program = new Command();
 program.name('vibeflow').description('SEO Blogs AI Workflow Tool').version('0.0.1');
@@ -93,7 +94,7 @@ program
           console.log(chalk.gray('📂 Created: .vibeflow/cache/'));
           console.log(chalk.gray('📂 Created: strategy/ (with example workflows)'));
           console.log(chalk.gray('📂 Created: .cursor/ (with MCP configuration)'));
-          console.log(chalk.gray('📄 Created: .env (add your API keys here)'));
+          console.log(chalk.gray('📄 Created: .vibeflow/.env (add your API keys here)'));
           console.log(chalk.blue('\n🎯 You can now run "vibeflow dev" to start the development server!'));
         }
       } else {
@@ -116,7 +117,7 @@ program
   });
 
 program
-  .command('dev')
+  .command('start')
   .description('Start Mastra development server with MCP integration')
   .option('--project-root <path>', 'Project root directory (defaults to current directory)')
   .action(async (options) => {
@@ -141,24 +142,10 @@ program
       console.log(chalk.gray('  • 🤖 5 specialized AI agents'));
       console.log(chalk.gray('  • 📝 Automated blog generation workflows\n'));
       
-      await startMastraDev(projectRoot);
+      await startMastraServer(projectRoot, parseInt(options.port) || 4111);
       
     } catch (error) {
       console.error(chalk.red('❌ Error starting development server:'), chalk.yellow(error instanceof Error ? error.message : 'Unknown error'));
-      process.exit(1);
-    }
-  });
-
-program
-  .command('mcp')
-  .description('Start SEO Blogs MCP server over stdio')
-  .option('--project-root <path>', 'Project root directory (defaults to current directory)')
-  .action(async (options) => {
-    try {
-      const projectRoot = options.projectRoot || process.cwd();
-      await startMCPServer(projectRoot);
-    } catch (error) {
-      console.error(chalk.red('❌ Error starting MCP server:'), chalk.yellow(error instanceof Error ? error.message : 'Unknown error'));
       process.exit(1);
     }
   });
@@ -219,10 +206,4 @@ program
     }
   });
 
-// Fallback: if no args & !process.stdin.isTTY, assume Cursor spawned us
-if (process.argv.length === 2 && !process.stdin.isTTY) {
-  const projectRoot = process.cwd();
-  startMCPServer(projectRoot);
-} else {
-  program.parse();
-}
+program.parse();

@@ -68,8 +68,8 @@ const extractImageQueriesStep = createStep({
       throw new Error("No image tag queries found");
     }
 
-    const imageSearchQueries = imageTagQueries.map((query) => query.replace(/<image-query>(.*?)<\/image-query>/gs, "$1").trim());
-    const imageCaptions = imageCaptionTags ? imageCaptionTags.map((caption) => caption.replace(/<image-caption>(.*?)<\/image-caption>/gs, "$1").trim()) : [];
+    const imageSearchQueries = imageTagQueries.map((query: string) => query.replace(/<image-query>(.*?)<\/image-query>/gs, "$1").trim());
+    const imageCaptions = imageCaptionTags ? imageCaptionTags.map((caption: string) => caption.replace(/<image-caption>(.*?)<\/image-caption>/gs, "$1").trim()) : [];
 
     return { imageSearchQueries, imageCaptions, blogPost };
   }
