@@ -1,11 +1,22 @@
 {
   "$schema": "https://turborepo.com/schema.json",
-  "ui": "tui",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [
+        "dist/**",
+        ".mastra/output/**",
+        "runtime/server/**"
+      ]
+    },
+    "stage-server": {
+      "dependsOn": ["mastra-app#build"],
+      "outputs": ["runtime/server/**", "!runtime/server/node_modules/**"]
+    },
+    "prepack": {
+      "dependsOn": ["stage-server", "build"],
+      "outputs": ["dist/**", "runtime/server/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]

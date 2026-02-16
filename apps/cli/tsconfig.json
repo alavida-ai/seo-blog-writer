@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+    "skipLibCheck": true
+  },
+  "references": [
+    { "path": "../../packages/mastra" }
+  ],
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}

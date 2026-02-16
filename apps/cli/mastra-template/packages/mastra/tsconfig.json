@@ -1,0 +1,15 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+      "outDir": "dist",
+      "rootDir": "src",
+      "composite": true,
+      "tsBuildInfoFile": "./dist/mastra.tsbuildinfo",
+      "resolveJsonModule": true,
+      "skipLibCheck": true,
+      "allowJs": true
+    },
+    "include": ["src/**/*"],
+    "exclude": ["dist", "node_modules"]
+  }
+  

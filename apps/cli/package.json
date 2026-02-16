@@ -1,0 +1,68 @@
+{
+  "name": "vibeflow-ai",
+  "version": "0.1.0",
+  "description": "CLI tool for SEO blog generation using AI agents - transform topics into comprehensive, SEO-optimized content",
+  "type": "module",
+  "author": "Alexander Girardet",
+  "license": "MIT",
+  "homepage": "https://github.com/yourusername/seo-blogs#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/seo-blogs.git",
+    "directory": "apps/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/seo-blogs/issues"
+  },
+  "keywords": [
+    "seo",
+    "blog",
+    "ai",
+    "content",
+    "generation",
+    "mastra",
+    "cli",
+    "automation",
+    "agents",
+    "workflow"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@types/figlet": "^1.7.0",
+    "@types/prompts": "^2.4.9",
+    "boxen": "^7.0.0",
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "rimraf": "^6.0.1",
+    "commander": "^13.1.0",
+    
+    "figlet": "^1.8.2",
+    "gradient-string": "^3.0.0",
+    "prompts": "^2.4.2",
+    "dotenv": "^16.4.7"
+  },
+  "bin": {
+    "vibeflow": "dist/bin.cjs"
+  },
+  "files": [
+    "dist/",
+    "README.md", 
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:cli": "esbuild src/bin.ts --bundle --platform=node --format=cjs --outfile=dist/bin.cjs --packages=bundle --external:fsevents --external:sury --external:@valibot/to-json-schema --external:effect --external:esbuild --external:@babel/preset-typescript/package.json",
+    "build:server": "cd ../mastra-app && pnpm run build && cp -r .mastra/output ../cli/dist/server",
+    "build": "pnpm build:server && pnpm build:cli",
+    "dev": "tsx src/bin.ts",
+    "prepack": "pnpm build",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.6",
+    "tsx": "^4.19.1",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  }
+}

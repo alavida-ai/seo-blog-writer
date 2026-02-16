@@ -1,0 +1,8 @@
+# Exclude all node_modules
+**/node_modules/
+
+# Exclude build artifacts
+src/
+*.ts
+*.log
+.turbo/
